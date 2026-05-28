@@ -551,6 +551,83 @@ function AnalysisResult({ result, onBack, onReanalyze, savedResults, onLoadSaved
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* ── CABINET LIST (FORCED VISIBLE AT TOP) ─────────────────────── */}
+        <div style={{ background: "#1a1410", border: "3px solid #c8a96e", borderRadius: 12, padding: 16 }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#c8a96e", marginBottom: 12, fontFamily: "'Playfair Display', serif" }}>
+            🪵 Extracted Cabinets ({(result.rooms || []).reduce((sum, r) => sum + (r.items?.length || 0), 0)} total)
+          </p>
+          {(result.rooms || []).length === 0 ? (
+            <p style={{ color: "#ff6b6b", fontSize: 14 }}>⚠️ No rooms in result. Check Copy Debug.</p>
+          ) : (
+            (result.rooms || []).map((room, ri) => (
+              <div key={ri} style={{ marginBottom: 16 }}>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 8, paddingBottom: 6, borderBottom: "1px solid rgba(200,169,110,0.3)" }}>
+                  📍 {String(room.label || "Unnamed area")} — {(room.items || []).length} cabinets
+                </p>
+                {!room.items || room.items.length === 0 ? (
+                  <p style={{ color: "#ff6b6b", fontSize: 13, padding: 8 }}>No cabinets in this area.</p>
+                ) : (
+                  room.items.map((item, ii) => (
+                    <div key={ii} style={{
+                      display: "block",
+                      padding: "12px 14px",
+                      marginBottom: 8,
+                      borderRadius: 8,
+                      background: "rgba(200,169,110,0.12)",
+                      border: "2px solid rgba(200,169,110,0.5)",
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 6 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 4 }}>
+                            #{ii + 1} — {String(item?.name || "Unnamed cabinet")}
+                          </p>
+                          <p style={{ fontSize: 13, color: "#c8a96e", fontFamily: "monospace", marginBottom: 4 }}>
+                            📐 {String(item?.size || "size unknown")}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newName = window.prompt("Cabinet name:", item?.name || "");
+                            if (newName === null) return;
+                            const newSize = window.prompt("Size (W × H × D):", item?.size || "");
+                            if (newSize === null) return;
+                            const updatedItems = room.items.map((it, idx) =>
+                              idx === ii ? { ...it, name: newName, size: newSize } : it
+                            );
+                            const updated = { ...result, rooms: result.rooms.map(r => r.id === room.id ? { ...r, items: updatedItems } : r) };
+                            if (onUpdate) onUpdate(updated);
+                          }}
+                          style={{
+                            background: "rgba(200,169,110,0.25)",
+                            border: "1px solid rgba(200,169,110,0.6)",
+                            borderRadius: 7,
+                            padding: "6px 14px",
+                            color: "#c8a96e",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            flexShrink: 0
+                          }}
+                        >✏️ Edit</button>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, fontSize: 12, color: "rgba(255,255,255,0.75)" }}>
+                        <div><strong style={{ color: "rgba(255,255,255,0.5)" }}>Material:</strong> {String(item?.material || "—")}</div>
+                        <div><strong style={{ color: "rgba(255,255,255,0.5)" }}>Doors:</strong> {Number(item?.doors) || 0} · <strong style={{ color: "rgba(255,255,255,0.5)" }}>Drawers:</strong> {Number(item?.drawers) || 0}</div>
+                        <div><strong style={{ color: "rgba(255,255,255,0.5)" }}>Hardware:</strong> {String(item?.hardware || "—")}</div>
+                        <div><strong style={{ color: "rgba(255,255,255,0.5)" }}>Function:</strong> {String(item?.interior || "—")}</div>
+                      </div>
+                      {item?.notes && (
+                        <p style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.45)", fontStyle: "italic" }}>
+                          Labels: {String(item.notes)}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            ))
+          )}
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
           {[
             { label: "MDF / Plywood (incl. 15% waste)", val: result.summary?.mdf_sheets || "—" },
@@ -560,97 +637,6 @@ function AnalysisResult({ result, onBack, onReanalyze, savedResults, onLoadSaved
             <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 14px" }}>
               <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>{s.label}</p>
               <p style={{ fontSize: 28, fontWeight: 700, color: "#c8a96e", fontFamily: "'Playfair Display', serif" }}>{s.val}</p>
-            </div>
-          ))}
-        </div>
-        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <p style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "'Playfair Display', serif" }}>Extracted Items by Room</p>
-          </div>
-          {(result.rooms || []).map((room, ri) => (
-            <div key={ri} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-              <div onClick={() => setExpanded(expanded === room.id ? null : room.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer", background: expanded === room.id ? "rgba(200,169,110,0.05)" : "transparent" }}>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", flex: 1 }}>{room.label}</p>
-                <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 20, background: room.confidence >= 90 ? "rgba(16,185,129,0.15)" : "rgba(200,169,110,0.15)", color: room.confidence >= 90 ? "#34d399" : "#c8a96e", border: "1px solid", borderColor: room.confidence >= 90 ? "rgba(16,185,129,0.25)" : "rgba(200,169,110,0.25)", fontWeight: 600 }}>{room.confidence}%</span>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{room.items?.length || 0} items</span>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>{expanded === room.id ? "▲" : "▼"}</span>
-              </div>
-              {expanded === room.id && (
-                <div style={{ padding: "12px 16px 16px", background: "rgba(0,0,0,0.2)" }}>
-                  {/* SIMPLE BULLETPROOF ITEM LIST */}
-                  {!room.items || room.items.length === 0 ? (
-                    <p style={{ color: "#ff6b6b", fontSize: 13 }}>No items in this room.</p>
-                  ) : (
-                    <div>
-                      <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        {room.items.length} cabinet{room.items.length > 1 ? "s" : ""} in this elevation
-                      </p>
-                      {room.items.map((item, ii) => (
-                        <div key={ii} style={{
-                          display: "block",
-                          padding: "14px 16px",
-                          marginBottom: 8,
-                          borderRadius: 10,
-                          background: "rgba(200,169,110,0.1)",
-                          border: "2px solid rgba(200,169,110,0.45)",
-                        }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 6 }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 4 }}>
-                                #{ii + 1} — {String(item?.name || "Unnamed cabinet")}
-                              </p>
-                              <p style={{ fontSize: 13, color: "#c8a96e", fontFamily: "monospace", marginBottom: 4 }}>
-                                📐 {String(item?.size || "size unknown")}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => {
-                                const newName = window.prompt("Cabinet name:", item?.name || "");
-                                if (newName === null) return;
-                                const newSize = window.prompt("Size (W × H × D):", item?.size || "");
-                                if (newSize === null) return;
-                                const updatedItems = room.items.map((it, idx) =>
-                                  idx === ii ? { ...it, name: newName, size: newSize } : it
-                                );
-                                const updated = { ...result, rooms: result.rooms.map(r => r.id === room.id ? { ...r, items: updatedItems } : r) };
-                                if (onUpdate) onUpdate(updated);
-                              }}
-                              style={{
-                                background: "rgba(200,169,110,0.2)",
-                                border: "1px solid rgba(200,169,110,0.5)",
-                                borderRadius: 7,
-                                padding: "6px 14px",
-                                color: "#c8a96e",
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                flexShrink: 0
-                              }}
-                            >✏️ Edit</button>
-                          </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
-                            <div><strong style={{ color: "rgba(255,255,255,0.45)" }}>Material:</strong> {String(item?.material || "—")}</div>
-                            <div><strong style={{ color: "rgba(255,255,255,0.45)" }}>Doors:</strong> {Number(item?.doors) || 0} · <strong style={{ color: "rgba(255,255,255,0.45)" }}>Drawers:</strong> {Number(item?.drawers) || 0}</div>
-                            <div><strong style={{ color: "rgba(255,255,255,0.45)" }}>Hardware:</strong> {String(item?.hardware || "—")}</div>
-                            <div><strong style={{ color: "rgba(255,255,255,0.45)" }}>Function:</strong> {String(item?.interior || "—")}</div>
-                          </div>
-                          {item?.notes && (
-                            <p style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.4)", fontStyle: "italic" }}>
-                              Labels: {String(item.notes)}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {room.questions?.length > 0 && (
-                    <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 8, background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.2)" }}>
-                      <p style={{ fontSize: 13, color: "#93c5fd", fontWeight: 600, marginBottom: 8 }}>AI Questions:</p>
-                      {room.questions.map((q, qi) => <p key={qi} style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 5 }}>• {q}</p>)}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           ))}
         </div>
